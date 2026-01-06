@@ -1,12 +1,11 @@
 import { AnalysisResult, StockBar } from '@/types';
 import { getHistoricalData } from './yahoo';
 import { MA_PERIOD } from './consts';
-import { calculateRSI, calculateMACD } from './indicators';
+import { calculateRSI, calculateMACD, calculateATR, calculateVolumeMA } from './indicators';
 
 export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
     try {
-        // Fetch ~100 days of data to support EMA warm-up for MACD and RSI
-        const historyData = await getHistoricalData(symbol, 100);
+        const historyData = await getHistoricalData(symbol, 500);
 
         const history: StockBar[] = historyData.map(bar => ({
             date: new Date(bar.date).toISOString().split('T')[0],
@@ -40,15 +39,31 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
         const latestMACD = macdLine[macdLine.length - 1];
         const latestSignal = signalLine[signalLine.length - 1];
         const latestHist = histogram[histogram.length - 1];
-
-        // Check for crossover (simple logic: compare current hist with previous hist)
         const prevHist = histogram[histogram.length - 2];
-        let macdStatus: 'Bullish Crossover' | 'Bearish Crossover' | 'Bullish' | 'Bearish' = 'Neutral' as any;
+        let macdStatus: 'Bullish Crossover' | 'Bearish Crossover' | 'Bullish' | 'Bearish' = 'Bullish';
 
         if (prevHist <= 0 && latestHist > 0) macdStatus = 'Bullish Crossover';
         else if (prevHist >= 0 && latestHist < 0) macdStatus = 'Bearish Crossover';
         else if (latestHist > 0) macdStatus = 'Bullish';
         else macdStatus = 'Bearish';
+
+        // ATR
+        const atrValues = calculateATR(history, 14);
+        const latestATR = atrValues[atrValues.length - 1];
+        const atrRelative = (latestATR / latestClose) * 100;
+
+        // Volatility Status (Simple comparison with previous ATR)
+        const avgATR = atrValues.slice(-20).reduce((a, b) => a + b, 0) / 20;
+        let volatilityStatus: 'Low' | 'Normal' | 'High' = 'Normal';
+        if (latestATR > avgATR * 1.2) volatilityStatus = 'High';
+        else if (latestATR < avgATR * 0.8) volatilityStatus = 'Low';
+
+        // Volume
+        const volumes = history.map(h => h.volume);
+        const latestVolume = volumes[volumes.length - 1];
+        const volMA20Values = calculateVolumeMA(volumes, 20);
+        const volMA20 = volMA20Values[volMA20Values.length - 1];
+        const volumeRatio = latestVolume / volMA20;
 
         return {
             symbol,
@@ -61,6 +76,12 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
             signal: latestSignal,
             histogram: latestHist,
             macdStatus,
+            volume: latestVolume,
+            volumeMA20: volMA20,
+            volumeRatio,
+            atr: latestATR,
+            atrRelative,
+            volatilityStatus,
             history
         };
 
@@ -76,6 +97,12 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
             signal: 0,
             histogram: 0,
             macdStatus: 'Bearish',
+            volume: 0,
+            volumeMA20: 0,
+            volumeRatio: 0,
+            atr: 0,
+            atrRelative: 0,
+            volatilityStatus: 'Normal',
             history: [],
             error: error.message || 'Analysis failed'
         } as AnalysisResult;

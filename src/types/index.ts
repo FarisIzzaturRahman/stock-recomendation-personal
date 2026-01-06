@@ -21,6 +21,29 @@ export interface AnalysisResult {
   histogram: number;
   macdStatus: 'Bullish Crossover' | 'Bearish Crossover' | 'Bullish' | 'Bearish';
 
+  // New Indicators
+  volume: number;
+  volumeMA20: number;
+  volumeRatio: number;
+
+  atr: number;
+  atrRelative: number; // ATR as percentage of price
+  volatilityStatus: 'Low' | 'Normal' | 'High';
+
   history: StockBar[];
   error?: string;
+}
+
+export interface HypothesisResult {
+  totalSignals: number;
+  positiveOutcomes: number;
+  negativeOutcomes: number;
+  averageReturn: number;
+  successRate: number;
+  details: {
+    date: string;
+    returnDay5: number;
+    returnDay10: number;
+    returnDay20: number;
+  }[];
 }
