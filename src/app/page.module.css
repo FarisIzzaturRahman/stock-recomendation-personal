@@ -335,11 +335,28 @@
   gap: 0.5rem;
 }
 
+.contextIcon {
+  font-size: 1.2rem;
+  margin-bottom: 0.2rem;
+}
+
 .priorityReason {
   font-size: 1.1rem;
   line-height: 1.6;
   font-weight: 500;
   color: #f1f5f9;
+  position: relative;
+  padding-left: 1rem;
+  border-left: 3px solid #3b82f6;
+}
+
+.longevityBadge {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
 }
 
 .contextGrid {
@@ -367,6 +384,64 @@
 .contextValue {
   font-size: 0.9rem;
   font-weight: 600;
+}
+
+.statCard {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.horizonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.setupDisplay {
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+  margin-bottom: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.setupTag {
+  background: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 100px;
+  border: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
 }
 
 .footer {

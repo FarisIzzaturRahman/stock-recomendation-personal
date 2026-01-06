@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { AnalysisResult, HypothesisResult, ContextAlignment } from '@/types';
+import { AnalysisResult, ContextAlignment, RetrospectiveAnalysis } from '@/types';
 import styles from './page.module.css';
 import dynamic from 'next/dynamic';
 import { generateInsights } from '@/lib/insights';
-import { runHypothesisTest, HypothesisCondition } from '@/lib/hypothesis';
 import { getIDXMarketStatus, formatWIBTime, MarketStatus } from '@/lib/market';
+import { runRetrospectiveAnalysis } from '@/lib/retrospective';
 
 const StockChart = dynamic(() => import('@/components/Chart'), { ssr: false });
 
@@ -22,10 +22,8 @@ export default function Home() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [marketInfo, setMarketInfo] = useState<MarketStatus>({ isOpen: false, message: 'Checking Market...', nextCheckMinutes: 1 });
 
-  // Hypothesis State
-  const [selectedCondition, setSelectedCondition] = useState<HypothesisCondition>('Price > MA-20');
-  const [selectedWindow, setSelectedWindow] = useState<TimeWindow>('250');
-  const [hypothesisResult, setHypothesisResult] = useState<HypothesisResult | null>(null);
+  // Retrospective State
+  const [retrospectiveData, setRetrospectiveData] = useState<RetrospectiveAnalysis | null>(null);
 
   const fetchData = useCallback(async (isAuto = false) => {
     if (!isAuto) setLoading(true);
@@ -79,11 +77,18 @@ export default function Home() {
   const selectedData = data.find(d => d.symbol === selectedSymbol);
 
   useEffect(() => {
-    if (selectedData && selectedData.history.length > 0) {
-      const result = runHypothesisTest(selectedData.history, selectedCondition, parseInt(selectedWindow));
-      setHypothesisResult(result);
+    if (selectedData && selectedData.contexts) {
+      const setup = {
+        isAboveMA20: selectedData.isAboveMA20,
+        trend: selectedData.contexts.trend,
+        momentum: selectedData.contexts.momentum,
+        participation: selectedData.contexts.participation,
+        volatility: selectedData.contexts.volatility
+      };
+      const result = runRetrospectiveAnalysis(selectedData.history, setup);
+      setRetrospectiveData(result);
     }
-  }, [selectedData, selectedCondition, selectedWindow]);
+  }, [selectedData]);
 
   const insights = selectedData ? generateInsights(selectedData) : [];
   const formatNum = (val: number) => new Intl.NumberFormat('id-ID', { maximumFractionDigits: 2 }).format(val);
@@ -168,21 +173,36 @@ export default function Home() {
                     {selectedData.alignmentReason}
                   </div>
 
+                  {selectedData.contexts?.isDivergent && (
+                    <div className={styles.divergenceWarning}>
+                      ⚠️ <strong>Observasi Divergensi:</strong> {selectedData.contexts.divergenceReason}
+                    </div>
+                  )}
+
                   {selectedData.contexts && (
                     <div className={styles.contextGrid}>
                       <div className={styles.contextItem}>
+                        <div className={styles.contextIcon}>📈</div>
                         <span className={styles.contextLabel}>Trend</span>
-                        <span className={styles.contextValue}>{selectedData.contexts.trend}</span>
+                        <span className={styles.contextValue}>
+                          {selectedData.contexts.trend}
+                          {selectedData.contexts.trendLongevity && selectedData.contexts.trendLongevity > 1 && (
+                            <span className={styles.longevityBadge}>{selectedData.contexts.trendLongevity}D</span>
+                          )}
+                        </span>
                       </div>
                       <div className={styles.contextItem}>
+                        <div className={styles.contextIcon}>⚡</div>
                         <span className={styles.contextLabel}>Momentum</span>
                         <span className={styles.contextValue}>{selectedData.contexts.momentum}</span>
                       </div>
                       <div className={styles.contextItem}>
+                        <div className={styles.contextIcon}>👥</div>
                         <span className={styles.contextLabel}>Participation</span>
                         <span className={styles.contextValue}>{selectedData.contexts.participation}</span>
                       </div>
                       <div className={styles.contextItem}>
+                        <div className={styles.contextIcon}>🌊</div>
                         <span className={styles.contextLabel}>Volatility</span>
                         <span className={styles.contextValue}>{selectedData.contexts.volatility}</span>
                       </div>
@@ -212,52 +232,53 @@ export default function Home() {
                   <StockChart data={selectedData} />
                 </div>
 
-                {/* HYPOTHESIS TESTING */}
+                {/* RETROSPECTIVE EXPLORATION */}
                 <section className={styles.chartSection} style={{ marginTop: '2rem', background: '#f8fafc' }}>
-                  <h3 className={styles.insightTitle}>🧪 Hypothesis Testing Module</h3>
-                  <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.4rem' }}>Pilih Kondisi:</label>
-                      <select
-                        value={selectedCondition}
-                        onChange={(e) => setSelectedCondition(e.target.value as HypothesisCondition)}
-                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white', minWidth: '240px' }}
-                      >
-                        <option value="Price > MA-20">Price Cross Above MA-20</option>
-                        <option value="Price > MA-20 + High Vol">Price {' > '} MA-20 + Volume {' > '} Avg</option>
-                        <option value="MACD Bullish Crossover">MACD Bullish Crossover</option>
-                        <option value="RSI < 30">RSI Cross Below 30</option>
-                        <option value="Volatility Low (ATR)">Volatility Convergence (ATR)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.8rem', color: '#64748b', marginBottom: '0.4rem' }}>Periode:</label>
-                      <select
-                        value={selectedWindow}
-                        onChange={(e) => setSelectedWindow(e.target.value as TimeWindow)}
-                        style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0', background: 'white' }}
-                      >
-                        <option value="125">6 Bulan</option>
-                        <option value="250">1 Tahun</option>
-                        <option value="500">2 Tahun</option>
-                      </select>
-                    </div>
+                  <div style={{ marginBottom: '1rem' }}>
+                    <h3 className={styles.insightTitle}>🔍 What usually happens after this setup?</h3>
+                    <p style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                      Eksplorasi retrospektif: Mencari kejadian serupa di masa lalu (1 tahun terakhir) dan mengamati hasil 5, 10, dan 20 hari setelahnya.
+                    </p>
                   </div>
 
-                  {hypothesisResult && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem' }}>
-                      <div style={{ background: 'white', padding: '1.25rem', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Kemunculan Sinyal</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b' }}>{hypothesisResult.totalSignals}</div>
+                  {selectedData.contexts && (
+                    <div className={styles.setupDisplay}>
+                      <span className={styles.setupTag}>Tren: {selectedData.contexts.trend}</span>
+                      <span className={styles.setupTag}>Momentum: {selectedData.contexts.momentum}</span>
+                      <span className={styles.setupTag}>Partisipasi: {selectedData.contexts.participation}</span>
+                      <span className={styles.setupTag}>Volatilitas: {selectedData.contexts.volatility}</span>
+                    </div>
+                  )}
+
+                  {retrospectiveData && retrospectiveData.totalOccurrences > 0 ? (
+                    <>
+                      <div style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: '#1e293b' }}>
+                        Ditemukan <strong>{retrospectiveData.totalOccurrences} kejadian serupa</strong> dalam sejarah historis. Berikut adalah hasil probabilistiknya:
                       </div>
-                      <div style={{ background: 'white', padding: '1.25rem', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Success Rate (20 Hari)</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#059669' }}>{formatNum(hypothesisResult.successRate)}%</div>
+                      <div className={styles.horizonGrid}>
+                        {retrospectiveData.stats.map(stat => (
+                          <div key={stat.horizon} className={styles.statCard}>
+                            <div className={styles.statLabel}>{stat.horizon} Hari Perdagangan Setelehnya</div>
+                            <div className={styles.statValue} style={{ color: stat.positiveRate > 50 ? '#059669' : '#1e293b' }}>
+                              {formatNum(stat.positiveRate)}%
+                              <span style={{ fontSize: '0.8rem', fontWeight: 500, color: '#94a3b8', marginLeft: '0.5rem' }}>Higher</span>
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#475569' }}>
+                              Median: <strong>{stat.medianReturn > 0 ? '+' : ''}{formatNum(stat.medianReturn)}%</strong>
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.5rem' }}>
+                              Rentang Historis: {formatNum(stat.minReturn)}% s/d {formatNum(stat.maxReturn)}%
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={{ background: 'white', padding: '1.25rem', borderRadius: '10px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' }}>Rerata Return (20 Hari)</div>
-                        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b' }}>{formatNum(hypothesisResult.averageReturn)}%</div>
-                      </div>
+                      <p style={{ marginTop: '1.5rem', fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>
+                        *Hasil di atas merupakan observasi data masa lalu dan bukan jaminan hasil di masa depan. Variasi rentang menunjukkan ketidakpastian pasar yang signifikan.
+                      </p>
+                    </>
+                  ) : (
+                    <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      Setup teknikal ini unik dan tidak ditemukan padanan serupa dalam 1 tahun terakhir untuk emiten ini.
                     </div>
                   )}
                 </section>

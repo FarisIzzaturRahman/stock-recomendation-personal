@@ -18,13 +18,40 @@ export interface StockContexts {
   momentum: MomentumContext;
   participation: ParticipationContext;
   volatility: VolatilityContext;
+  trendLongevity?: number;
+  isDivergent?: boolean;
+  divergenceReason?: string;
+}
+
+export interface SetupDefinition {
+  isAboveMA20: boolean;
+  trend: TrendContext;
+  momentum: MomentumContext;
+  participation: ParticipationContext;
+  volatility: VolatilityContext;
+}
+
+export interface HorizonStats {
+  horizon: number; // in trading days
+  higherCount: number;
+  totalOccurrences: number;
+  medianReturn: number;
+  minReturn: number;
+  maxReturn: number;
+  positiveRate: number;
+}
+
+export interface RetrospectiveAnalysis {
+  setup: SetupDefinition;
+  totalOccurrences: number;
+  stats: HorizonStats[];
 }
 
 export interface AnalysisResult {
   symbol: string;
   close: number;
   ma20: number;
-  ma50?: number; // Added for trend context
+  ma50?: number;
   isAboveMA20: boolean;
 
   rsi: number;
@@ -43,7 +70,6 @@ export interface AnalysisResult {
   atrRelative: number;
   volatilityStatus: 'Low' | 'Normal' | 'High';
 
-  // Prioritization Module fields
   contexts?: StockContexts;
   alignment?: ContextAlignment;
   alignmentReason?: string;
@@ -65,3 +91,4 @@ export interface HypothesisResult {
     returnDay20: number;
   }[];
 }
+
