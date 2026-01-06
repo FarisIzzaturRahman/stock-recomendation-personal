@@ -50,6 +50,95 @@
   margin-bottom: 0.5rem;
 }
 
+.statusBar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  font-size: 0.8rem;
+  background: rgba(248, 250, 252, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.6rem 1.5rem;
+  border-radius: 100px;
+  border: 1px solid rgba(226, 232, 240, 0.5);
+  width: fit-content;
+  margin: -1rem auto 2.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+}
+
+.statusItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.01em;
+}
+
+.statusIndicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.statusOpen {
+  background-color: #10b981;
+}
+
+.statusOpen::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #10b981;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+  opacity: 0.6;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  70% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+.statusClosed {
+  background-color: #94a3b8;
+}
+
+.lastUpdated {
+  color: #475569;
+  font-size: 0.75rem;
+}
+
+.delayedBadge {
+  background: #fff;
+  color: #f97316;
+  border: 1px solid #fed7aa;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 5px rgba(249, 115, 22, 0.1);
+}
+
 .symbolList {
   display: flex;
   flex-direction: column;
