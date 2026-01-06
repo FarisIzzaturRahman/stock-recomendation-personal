@@ -1,13 +1,16 @@
 /**
  * Manual implementation of technical indicators.
- * Principles: 
- * - EMA (Exponential Moving Average)
- * - RSI (Relative Strength Index) using EMA smoothing (Wilder's method)
- * - MACD (Moving Average Convergence Divergence)
- * - ATR (Average True Range)
  */
 
 import { StockBar } from "@/types";
+
+export function calculateMA(prices: number[], period: number): number[] {
+    return prices.map((_, i, arr) => {
+        if (i < period - 1) return 0;
+        const slice = arr.slice(i - period + 1, i + 1);
+        return slice.reduce((a, b) => a + b, 0) / period;
+    });
+}
 
 export function calculateEMA(prices: number[], period: number): number[] {
     const k = 2 / (period + 1);
@@ -69,15 +72,10 @@ export function calculateMACD(
     return { macdLine, signalLine, histogram };
 }
 
-/**
- * ATR (Average True Range)
- * TR = max(high-low, abs(high-prevClose), abs(low-prevClose))
- */
 export function calculateATR(history: StockBar[], period: number = 14): number[] {
     const atr: number[] = [];
     const tr: number[] = [];
 
-    // First TR is just High - Low
     tr.push(history[0].high - history[0].low);
 
     for (let i = 1; i < history.length; i++) {
@@ -87,12 +85,10 @@ export function calculateATR(history: StockBar[], period: number = 14): number[]
         tr.push(Math.max(h_l, h_pc, l_pc));
     }
 
-    // First ATR is the SMA of the first 'period' True Ranges
     let currentAtr = tr.slice(0, period).reduce((a, b) => a + b, 0) / period;
-    for (let i = 0; i < period - 1; i++) atr.push(currentAtr); // Padding
+    for (let i = 0; i < period - 1; i++) atr.push(currentAtr);
     atr.push(currentAtr);
 
-    // Subsequent ATR: Smoothed (Wilder's method)
     for (let i = period; i < tr.length; i++) {
         currentAtr = (currentAtr * (period - 1) + tr[i]) / period;
         atr.push(currentAtr);
@@ -102,9 +98,5 @@ export function calculateATR(history: StockBar[], period: number = 14): number[]
 }
 
 export function calculateVolumeMA(volumes: number[], period: number = 20): number[] {
-    return volumes.map((_, i, arr) => {
-        if (i < period - 1) return arr.slice(0, i + 1).reduce((a, b) => a + b, 0) / (i + 1);
-        const slice = arr.slice(i - period + 1, i + 1);
-        return slice.reduce((a, b) => a + b, 0) / period;
-    });
+    return calculateMA(volumes, period);
 }

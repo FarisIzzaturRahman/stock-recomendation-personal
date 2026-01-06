@@ -42,13 +42,13 @@ export default function StockChart({ data }: ChartProps) {
         const candleSeries = priceChart.addSeries(CandlestickSeries, {
             upColor: '#26a69a', downColor: '#ef5350', borderVisible: false, wickUpColor: '#26a69a', wickDownColor: '#ef5350',
         });
-        candleSeries.setData(data.history.map(b => ({ time: b.date, open: b.open, high: b.high, low: b.low, close: b.close })));
+        candleSeries.setData(data.history.map(b => ({ time: b.date.split('T')[0], open: b.open, high: b.high, low: b.low, close: b.close })));
 
         const ma20Series = priceChart.addSeries(LineSeries, { color: '#2962FF', lineWidth: 2 });
         const ma20Data = data.history.map((_, i, arr) => {
             if (i < 19) return null;
             const sum = arr.slice(i - 19, i + 1).reduce((a, b) => a + b.close, 0);
-            return { time: arr[i].date, value: sum / 20 };
+            return { time: arr[i].date.split('T')[0], value: sum / 20 };
         }).filter((i): i is { time: string; value: number } => i !== null);
         ma20Series.setData(ma20Data);
 
@@ -56,7 +56,7 @@ export default function StockChart({ data }: ChartProps) {
         const volumeChart = createChart(volumeContainerRef.current!, { ...commonOptions, height: 100 });
         const volumeSeries = volumeChart.addSeries(HistogramSeries, { color: '#26a69a' });
         volumeSeries.setData(data.history.map(b => ({
-            time: b.date,
+            time: b.date.split('T')[0],
             value: b.volume,
             color: b.close >= b.open ? '#26a69a88' : '#ef535088'
         })));
@@ -66,7 +66,7 @@ export default function StockChart({ data }: ChartProps) {
         const rsiSeries = rsiChart.addSeries(LineSeries, { color: '#7e57c2', lineWidth: 2 });
         // Minimal local calculation for full history plot
         const prices = data.history.map(h => h.close);
-        const rsiData = calculateRSI(prices).map((v, i) => ({ time: data.history[i].date, value: v })).slice(14);
+        const rsiData = calculateRSI(prices).map((v, i) => ({ time: data.history[i].date.split('T')[0], value: v })).slice(14);
         rsiSeries.setData(rsiData);
 
         // 4. MACD Chart
@@ -76,10 +76,10 @@ export default function StockChart({ data }: ChartProps) {
         const hSeries = macdChart.addSeries(HistogramSeries, { color: '#26a69a' });
 
         const macdFull = calculateMACD(prices);
-        mLine.setData(macdFull.macdLine.map((v, i) => ({ time: data.history[i].date, value: v })));
-        sLine.setData(macdFull.signalLine.map((v, i) => ({ time: data.history[i].date, value: v })));
+        mLine.setData(macdFull.macdLine.map((v, i) => ({ time: data.history[i].date.split('T')[0], value: v })));
+        sLine.setData(macdFull.signalLine.map((v, i) => ({ time: data.history[i].date.split('T')[0], value: v })));
         hSeries.setData(macdFull.histogram.map((v, i) => ({
-            time: data.history[i].date, value: v, color: v >= 0 ? '#26a69a' : '#ef5350'
+            time: data.history[i].date.split('T')[0], value: v, color: v >= 0 ? '#26a69a' : '#ef5350'
         })));
 
         // Sync time scales

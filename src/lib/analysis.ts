@@ -1,31 +1,30 @@
-import { AnalysisResult, StockBar } from '@/types';
-import { getHistoricalData } from './yahoo';
-import { MA_PERIOD } from './consts';
-import { calculateRSI, calculateMACD, calculateATR, calculateVolumeMA } from './indicators';
+import { StockBar, AnalysisResult } from "@/types";
+import { calculateMA, calculateRSI, calculateMACD, calculateATR } from "./indicators";
+import { getHistoricalData } from "./yahoo";
+import { evaluateStockContexts, calculateAlignment } from "./prioritization";
 
 export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
     try {
-        const historyData = await getHistoricalData(symbol, 500);
+        const rawHistory = await getHistoricalData(symbol, 500);
 
-        const history: StockBar[] = historyData.map(bar => ({
-            date: new Date(bar.date).toISOString().split('T')[0],
-            open: bar.open,
-            high: bar.high,
-            low: bar.low,
-            close: bar.close,
-            volume: bar.volume
-        }));
-
-        if (history.length < 35) {
-            throw new Error(`Insufficient data for analysis: ${history.length} days`);
+        if (rawHistory.length < 50) {
+            throw new Error('Data historis tidak mencukupi untuk analisis teknikal.');
         }
+
+        // Transform to StockBar (ensuring date is string)
+        const history: StockBar[] = rawHistory.map(h => ({
+            ...h,
+            date: typeof h.date === 'string' ? h.date : h.date.toISOString()
+        }));
 
         const prices = history.map(h => h.close);
         const latestClose = prices[prices.length - 1];
 
-        // MA-20
-        const maSlice = prices.slice(-MA_PERIOD);
-        const ma20 = maSlice.reduce((a, b) => a + b, 0) / MA_PERIOD;
+        // MA-20 & MA-50
+        const ma20Values = calculateMA(prices, 20);
+        const ma20 = ma20Values[ma20Values.length - 1];
+        const ma50Values = calculateMA(prices, 50);
+        const ma50 = ma50Values[ma50Values.length - 1];
 
         // RSI
         const rsiValues = calculateRSI(prices, 14);
@@ -40,12 +39,10 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
         const latestSignal = signalLine[signalLine.length - 1];
         const latestHist = histogram[histogram.length - 1];
         const prevHist = histogram[histogram.length - 2];
-        let macdStatus: 'Bullish Crossover' | 'Bearish Crossover' | 'Bullish' | 'Bearish' = 'Bullish';
 
-        if (prevHist <= 0 && latestHist > 0) macdStatus = 'Bullish Crossover';
-        else if (prevHist >= 0 && latestHist < 0) macdStatus = 'Bearish Crossover';
-        else if (latestHist > 0) macdStatus = 'Bullish';
-        else macdStatus = 'Bearish';
+        let macdStatus: 'Bullish Crossover' | 'Bearish Crossover' | 'Bullish' | 'Bearish' = latestMACD > latestSignal ? 'Bullish' : 'Bearish';
+        if (latestHist > 0 && prevHist <= 0) macdStatus = 'Bullish Crossover';
+        else if (latestHist < 0 && prevHist >= 0) macdStatus = 'Bearish Crossover';
 
         // ATR
         const atrValues = calculateATR(history, 14);
@@ -61,14 +58,15 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
         // Volume
         const volumes = history.map(h => h.volume);
         const latestVolume = volumes[volumes.length - 1];
-        const volMA20Values = calculateVolumeMA(volumes, 20);
+        const volMA20Values = calculateMA(volumes, 20);
         const volMA20 = volMA20Values[volMA20Values.length - 1];
         const volumeRatio = latestVolume / volMA20;
 
-        return {
+        const partialResult: AnalysisResult = {
             symbol,
             close: latestClose,
             ma20,
+            ma50,
             isAboveMA20: latestClose > ma20,
             rsi: latestRSI,
             rsiStatus,
@@ -85,7 +83,19 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
             history
         };
 
+        // Context Evaluation & Prioritization
+        const contexts = evaluateStockContexts(partialResult, history);
+        const { alignment, reason } = calculateAlignment(contexts);
+
+        return {
+            ...partialResult,
+            contexts,
+            alignment,
+            alignmentReason: reason
+        };
+
     } catch (error: any) {
+        console.error(`Error analyzing ${symbol}:`, error);
         return {
             symbol,
             close: 0,
@@ -104,7 +114,7 @@ export async function analyzeStock(symbol: string): Promise<AnalysisResult> {
             atrRelative: 0,
             volatilityStatus: 'Normal',
             history: [],
-            error: error.message || 'Analysis failed'
-        } as AnalysisResult;
+            error: error.message
+        };
     }
 }

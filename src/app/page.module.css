@@ -295,6 +295,80 @@
   border-radius: 12px;
 }
 
+.badgeHigh {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #10b981;
+}
+
+.badgeModerate {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #60a5fa;
+}
+
+.badgeLow {
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.prioritySection {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.priorityTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.priorityReason {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.contextGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.contextItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.contextLabel {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.contextValue {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .footer {
   margin-top: 4rem;
   padding: 2.5rem;
